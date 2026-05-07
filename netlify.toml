@@ -6,6 +6,10 @@
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@netlify/blobs"]
+
 [[redirects]]
   from = "/api/game-activities/sync"
   to = "/.netlify/functions/game-activities-sync"
