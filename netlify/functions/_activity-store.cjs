@@ -1,4 +1,5 @@
 const { randomUUID, timingSafeEqual } = require('node:crypto');
+const { connectLambda, getStore } = require('@netlify/blobs');
 const seedActivities = require('../../server/modules/game-activity/default-game-activities.json');
 
 const STORE_NAME = 'game-activity-calendar';
@@ -7,7 +8,6 @@ const DEFAULT_GOOGLE_SHEETS_CSV_URL =
   'https://docs.google.com/spreadsheets/d/1TGdrSpGIjK7AElPam4q6A5YBIS0K8via1a8tQuSMjFM/export?format=csv&gid=0';
 
 async function getActivityStore(event) {
-  const { connectLambda, getStore } = await import('@netlify/blobs');
   connectLambda(event);
   return getStore(STORE_NAME);
 }
