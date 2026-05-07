@@ -9,12 +9,18 @@ const DEFAULT_GOOGLE_SHEETS_CSV_URL =
 async function getActivityStore(event) {
   const { connectLambda, getStore } = await import('@netlify/blobs');
   connectLambda(event);
-  return getStore(STORE_NAME);
+  return getStore({
+    name: STORE_NAME,
+    consistency: 'eventual',
+  });
 }
 
 async function loadActivities(event) {
   const store = await getActivityStore(event);
-  const stored = await store.get(ACTIVITIES_KEY, { type: 'json' });
+  const stored = await store.get(ACTIVITIES_KEY, {
+    consistency: 'eventual',
+    type: 'json',
+  });
   const activities = Array.isArray(stored)
     ? stored
     : Array.isArray(stored?.data)
