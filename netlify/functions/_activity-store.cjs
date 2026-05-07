@@ -14,10 +14,7 @@ async function getActivityStore(event) {
 
 async function loadActivities(event) {
   const store = await getActivityStore(event);
-  const stored = await store.get(ACTIVITIES_KEY, {
-    consistency: 'strong',
-    type: 'json',
-  });
+  const stored = await store.get(ACTIVITIES_KEY, { type: 'json' });
   const activities = Array.isArray(stored)
     ? stored
     : Array.isArray(stored?.data)
