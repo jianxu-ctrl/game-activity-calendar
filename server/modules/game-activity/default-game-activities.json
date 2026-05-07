@@ -1,0 +1,42 @@
+[
+  {
+    "activityId": "GG-2026-0508",
+    "region": "ID",
+    "language": "en",
+    "startDatetime": "2026-05-08 10:00:00",
+    "endDatetime": "2026-05-12 23:59:59",
+    "imageUrl": "/sample-events/treasure-rush.svg"
+  },
+  {
+    "activityId": "GG-2026-0516",
+    "region": "ID",
+    "language": "en",
+    "startDatetime": "2026-05-16 10:00:00",
+    "endDatetime": "2026-05-20 23:59:59",
+    "imageUrl": "/sample-events/arena-clash.svg"
+  },
+  {
+    "activityId": "GG-2026-0524",
+    "region": "ID",
+    "language": "en",
+    "startDatetime": "2026-05-24 10:00:00",
+    "endDatetime": "2026-05-30 23:59:59",
+    "imageUrl": "/sample-events/guild-festival.svg"
+  },
+  {
+    "activityId": "GG-2026-CN-0510",
+    "region": "CN",
+    "language": "zh-CN",
+    "startDatetime": "2026-05-10 10:00:00",
+    "endDatetime": "2026-05-18 23:59:59",
+    "imageUrl": "/sample-events/glory-season.svg"
+  },
+  {
+    "activityId": "GG-2026-JP-0521",
+    "region": "JP",
+    "language": "ja",
+    "startDatetime": "2026-05-21 10:00:00",
+    "endDatetime": "2026-05-26 23:59:59",
+    "imageUrl": "/sample-events/hero-trials.svg"
+  }
+]

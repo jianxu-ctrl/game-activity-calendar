@@ -1,0 +1,51 @@
+{
+  "id": "google_sheets_activity_data_sync_1",
+  "pluginKey": "@official-plugins/web-crawler",
+  "pluginVersion": "1.0.3",
+  "name": "谷歌表格活动数据同步",
+  "description": "读取Google Sheets中的游戏活动配置数据，解析网页内容提取region、language、start_datetime、end_datetime、image_url字段",
+  "icon": "",
+  "paramsSchema": {
+    "properties": {},
+    "required": [],
+    "type": "object"
+  },
+  "formValue": {
+    "extractionConfig": {
+      "fields": [
+        {
+          "name": "region",
+          "type": "string",
+          "description": "活动适用的地区"
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "description": "活动使用的语言"
+        },
+        {
+          "description": "活动开始时间，格式为YYYY-MM-DD HH:mm:ss",
+          "name": "start_datetime",
+          "type": "string"
+        },
+        {
+          "description": "活动结束时间，格式为YYYY-MM-DD HH:mm:ss",
+          "name": "end_datetime",
+          "type": "string"
+        },
+        {
+          "description": "活动相关图片的URL地址",
+          "name": "image_url",
+          "type": "string"
+        }
+      ],
+      "outputFormat": "json_array"
+    },
+    "prompt": "你是一位专业的网页数据提取专家，请从提供的谷歌表格HTML页面内容中提取所有活动相关的结构化数据。提取要求：1. 每个活动作为一个独立的JSON对象，包含region、language、start_datetime、end_datetime、image_url五个字段；2. 日期时间统一转换为YYYY-MM-DD HH:mm:ss格式；3. 如果某个字段信息缺失，填空字符串；4. 最终输出为包含所有活动对象的JSON数组，不需要其他额外内容。",
+    "url": "https://docs.google.com/spreadsheets/d/1TGdrSpGIjK7AElPam4q6A5YBIS0K8via1a8tQuSMjFM/edit?hl=zh-cn&gid=0#gid=0",
+    "processMode": "extract_structured_data"
+  },
+  "createdAt": 1775207852172,
+  "updatedAt": 1775209565470,
+  "createdBy": 7387281692660727810
+}
