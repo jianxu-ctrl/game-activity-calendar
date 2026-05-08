@@ -314,8 +314,11 @@ const ActivityCalendarPage = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Region Filter - Button Group */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 rounded-xl p-1.5 border border-zinc-700">
-            <Globe className="w-4 h-4 text-zinc-400 ml-2 mr-1" />
+          <div className="flex items-center gap-1.5 bg-zinc-900 rounded-xl p-1.5 border border-zinc-700" aria-label="Region filter">
+            <Globe className="w-4 h-4 text-zinc-400 ml-2" />
+            <span className="mr-1 text-xs font-semibold text-zinc-400">
+              Region
+            </span>
             {availableRegions.filter(r => r !== '').map((region) => (
               <Button
                 key={region}
