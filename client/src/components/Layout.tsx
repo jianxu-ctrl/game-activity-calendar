@@ -8,6 +8,7 @@ const Layout = () => {
     location.pathname.startsWith("/calendar") ||
     (location.pathname === "/" && isAdminCalendar);
   const isPreviewPage = location.pathname.startsWith("/preview");
+  const isWorkspacePage = isCalendarPage || isPreviewPage;
   const calendarHref = isAdminCalendar ? "/calendar?admin=1" : "/calendar";
   const navItems = [
     { id: "home", label: "Tools Center", href: "/", icon: Home },
@@ -94,7 +95,7 @@ const Layout = () => {
           </nav>
         </div>
 
-        <main className={`min-w-0 flex-1 w-full ${isPreviewPage ? "max-w-none p-0" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"}`}>
+        <main className={`min-w-0 flex-1 w-full ${isWorkspacePage ? "max-w-none p-0" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"}`}>
         <Outlet />
         </main>
       </div>

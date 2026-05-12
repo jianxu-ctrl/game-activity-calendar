@@ -280,33 +280,19 @@ const ActivityCalendarPage = () => {
   };
 
   return (
-    <div className="space-y-6 relative min-h-screen bg-zinc-950 p-6">
-      {/* Background decoration */}
-      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-amber-600/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-amber-500/[0.05] to-transparent rounded-full" />
-      </div>
-
-      {/* Game Logo */}
-      <div className="flex justify-center mb-8">
-        <img
-          src="https://miaoda.feishu.cn/aily/api/v1/feisuda/attachments/b5772ef3-a94d-47cb-85ff-2d64670a85c8/raw"
-          alt="Golden & Glory"
-          className="h-28 object-contain drop-shadow-[0_0_40px_rgba(180,140,50,0.4)]"
-        />
-      </div>
-      {/* Header Bar */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-5 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800 shadow-lg shadow-black/20">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_30%),linear-gradient(to_bottom,#f8fafc,#eef2ff)] p-6 text-slate-900">
+      <div className="mx-auto max-w-[1800px] space-y-5">
+        {/* Header Bar */}
+        <div className="flex flex-col items-start justify-between gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-5 shadow-sm shadow-slate-200/70 backdrop-blur lg:flex-row lg:items-center">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-orange-950/40 rounded-xl border border-orange-800/30">
-            <CalendarDays className="w-6 h-6 text-orange-600" />
+          <div className="rounded-2xl bg-slate-900 p-2.5 text-white shadow-sm">
+            <CalendarDays className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight text-slate-950">
               Event Pop-Up Calendar
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-slate-500">
               {new Date(year, month - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
@@ -314,9 +300,9 @@ const ActivityCalendarPage = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Region Filter - Button Group */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 rounded-xl p-1.5 border border-zinc-700" aria-label="Region filter">
-            <Globe className="w-4 h-4 text-zinc-400 ml-2" />
-            <span className="mr-1 text-xs font-semibold text-zinc-400">
+          <div className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" aria-label="Region filter">
+            <Globe className="w-4 h-4 text-slate-500 ml-2" />
+            <span className="mr-1 text-xs font-semibold text-slate-500">
               Region
             </span>
             {availableRegions.filter(r => r !== '').map((region) => (
@@ -325,7 +311,7 @@ const ActivityCalendarPage = () => {
                 variant={selectedRegion === region ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedRegion(region)}
-                className={`h-8 px-3 text-xs font-medium rounded-lg ${selectedRegion === region ? 'bg-orange-800 hover:bg-orange-700 text-orange-50' : 'text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800'}`}
+                className={`h-8 px-3 text-xs font-medium rounded-xl ${selectedRegion === region ? 'bg-slate-950 hover:bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'}`}
               >
                 {region}
               </Button>
@@ -333,30 +319,30 @@ const ActivityCalendarPage = () => {
           </div>
 
           {/* Language Filter - Button Group */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 rounded-xl p-1.5 border border-zinc-700">
-            <Languages className="w-4 h-4 text-zinc-400 ml-2 mr-1" />
+          <div className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+            <Languages className="w-4 h-4 text-slate-500 ml-2 mr-1" />
             {availableLanguages.filter(l => l !== '').map((language) => (
               <Button
                 key={language}
                 variant={selectedLanguage === language ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedLanguage(language)}
-                className={`h-8 px-3 text-xs font-medium rounded-lg ${selectedLanguage === language ? 'bg-orange-800 hover:bg-orange-700 text-orange-50' : 'text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800'}`}
+                className={`h-8 px-3 text-xs font-medium rounded-xl ${selectedLanguage === language ? 'bg-slate-950 hover:bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'}`}
               >
                 {language}
               </Button>
             ))}
           </div>
 
-          <div className="w-px h-8 bg-zinc-700 mx-1" />
+          <div className="w-px h-8 bg-slate-200 mx-1" />
 
           {/* Month Navigation */}
-          <div className="flex items-center gap-1 bg-zinc-900 rounded-xl p-1 border border-zinc-700">
+          <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
             <Button
               variant="ghost"
               size="icon"
               onClick={handlePrevMonth}
-              className="h-8 w-8 hover:bg-zinc-800 text-zinc-300"
+              className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -364,7 +350,7 @@ const ActivityCalendarPage = () => {
               variant="ghost"
               size="icon"
               onClick={handleNextMonth}
-              className="h-8 w-8 hover:bg-zinc-800 text-zinc-300"
+              className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -385,7 +371,7 @@ const ActivityCalendarPage = () => {
                 size="sm"
                 onClick={handleUploadClick}
                 disabled={syncing}
-                className="h-10 px-4 rounded-xl bg-orange-800 hover:bg-orange-700 text-orange-50 font-medium shadow-lg shadow-orange-950/50"
+                className="h-10 px-4 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-medium shadow-sm"
               >
                 <Upload className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
                 {syncing ? 'Syncing...' : 'Upload'}
@@ -396,18 +382,14 @@ const ActivityCalendarPage = () => {
       </div>
 
       {/* Calendar Grid */}
-      <Card className="border-zinc-800 shadow-lg shadow-black/30 overflow-hidden bg-zinc-900/50 relative">
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{ backgroundImage: 'url(https://miaoda.feishu.cn/aily/api/v1/feisuda/attachments/50278d02-b673-48c5-9c7d-114a093c188a/raw)' }}
-        />
-        <CardContent className="p-0 bg-zinc-900/30 relative z-10">
+      <Card className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/70">
+        <CardContent className="p-0">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-b border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/95">
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="py-4 text-center text-sm font-semibold text-zinc-400 uppercase tracking-wider"
+                className="py-4 text-center text-sm font-semibold uppercase text-slate-500"
               >
                 {day}
               </div>
@@ -417,8 +399,8 @@ const ActivityCalendarPage = () => {
           {/* Calendar Days */}
           {loading ? (
             <div className="p-16 text-center">
-              <div className="inline-flex items-center gap-2 text-zinc-400">
-                <div className="w-5 h-5 border-2 border-orange-800/30 border-t-orange-700 rounded-full animate-spin" />
+              <div className="inline-flex items-center gap-2 text-slate-500">
+                <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
                 Loading events...
               </div>
             </div>
@@ -427,10 +409,10 @@ const ActivityCalendarPage = () => {
               {calendarDays.map((day, index) => (
                 <div
                   key={index}
-                  className={`min-h-[140px] p-2.5 border-b border-r border-zinc-800/60 last:border-r-0 transition-all ${
+                  className={`min-h-[140px] p-2.5 border-b border-r border-slate-100 last:border-r-0 transition-all ${
                     day.isCurrentMonth 
-                      ? 'bg-zinc-900/80 hover:bg-zinc-800/60 backdrop-blur-sm' 
-                      : 'bg-zinc-950/60 backdrop-blur-sm'
+                      ? 'bg-white hover:bg-slate-50' 
+                      : 'bg-slate-50/70'
                   }`}
                 >
                   {day.date && (
@@ -439,8 +421,8 @@ const ActivityCalendarPage = () => {
                         new Date().getDate() === day.date &&
                         new Date().getMonth() + 1 === month &&
                         new Date().getFullYear() === year
-                          ? 'bg-orange-800 text-orange-50 shadow-md shadow-orange-900/30'
-                          : 'text-zinc-400'
+                          ? 'bg-slate-950 text-white shadow-sm'
+                          : 'text-slate-500'
                       }`}>
                         {day.date}
                       </div>
@@ -462,7 +444,7 @@ const ActivityCalendarPage = () => {
                             }}
                             className="w-full text-left group"
                           >
-                            <div className="relative rounded overflow-hidden border border-zinc-700 hover:border-orange-700 hover:shadow-lg hover:shadow-orange-900/20 transition-all duration-200 group-hover:scale-[1.02]">
+                            <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-blue-200 hover:shadow-md group-hover:scale-[1.02]">
                               <img
                                 src={activity.imageUrl}
                                 alt="Activity"
@@ -475,13 +457,13 @@ const ActivityCalendarPage = () => {
                               <div className="absolute bottom-1 left-1 flex gap-1">
                                 <Badge
                                   variant="secondary"
-                                  className="text-[8px] px-1 py-0 h-3.5 bg-orange-900/80 text-orange-200 font-medium shadow-sm"
+                                  className="text-[8px] px-1 py-0 h-3.5 bg-blue-100/95 text-blue-700 font-medium shadow-sm"
                                 >
                                   {activity.region}
                                 </Badge>
                                 <Badge
                                   variant="secondary"
-                                  className="text-[8px] px-1 py-0 h-3.5 bg-zinc-700/80 text-zinc-300 font-medium shadow-sm"
+                                  className="text-[8px] px-1 py-0 h-3.5 bg-slate-100/95 text-slate-600 font-medium shadow-sm"
                                 >
                                   {activity.language}
                                 </Badge>
@@ -516,11 +498,11 @@ const ActivityCalendarPage = () => {
           }}
           onMouseLeave={() => setHoveredActivity(null)}
         >
-          <div className="bg-zinc-900/95 backdrop-blur-sm rounded-xl overflow-hidden border border-zinc-700 shadow-2xl shadow-black/50">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/60">
             <img
               src={hoveredActivity.imageUrl}
               alt="Preview"
-              className="w-[600px] h-[360px] object-contain bg-black"
+              className="w-[600px] h-[360px] object-contain bg-slate-950"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22360%22 viewBox=%220 0 600 360%22%3E%3Crect width=%22600%22 height=%22360%22 fill=%22%23111%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2218%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
               }}
@@ -531,29 +513,29 @@ const ActivityCalendarPage = () => {
 
       {/* Activity Detail Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden bg-zinc-900 border-zinc-800">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-slate-200 bg-white text-slate-900">
           {/* Custom Close Button */}
           <button
             onClick={() => setDialogOpen(false)}
-            className="absolute right-4 top-4 z-50 flex items-center justify-center w-8 h-8 rounded-full bg-orange-900/60 text-orange-100 border border-orange-700/50 hover:bg-orange-800 hover:text-white shadow-lg transition-colors"
+            className="absolute right-4 top-4 z-50 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 shadow-sm transition-colors hover:bg-slate-200 hover:text-slate-950"
           >
             <X className="w-4 h-4" />
           </button>
           {selectedActivity && (
             <>
               <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="flex items-center gap-3 text-xl text-zinc-100">
+                <DialogTitle className="flex items-center gap-3 text-xl text-slate-950">
                   <span>Activity Details</span>
                   <div className="flex gap-2">
-                    <Badge className="px-2.5 py-0.5 bg-orange-800 text-orange-50">{selectedActivity.region}</Badge>
-                    <Badge className="px-2.5 py-0.5 bg-zinc-700 text-zinc-200">{selectedActivity.language}</Badge>
+                    <Badge className="px-2.5 py-0.5 bg-blue-100 text-blue-700 hover:bg-blue-100">{selectedActivity.region}</Badge>
+                    <Badge className="px-2.5 py-0.5 bg-slate-100 text-slate-600 hover:bg-slate-100">{selectedActivity.language}</Badge>
                   </div>
                 </DialogTitle>
               </DialogHeader>
 
               <div className="space-y-4 p-6">
                 {/* Main Image - Larger */}
-                <div className="rounded-2xl overflow-hidden border border-zinc-700 shadow-lg shadow-black/20 group">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm group">
                   <img
                     src={selectedActivity.imageUrl}
                     alt="Activity Image"
@@ -566,27 +548,27 @@ const ActivityCalendarPage = () => {
 
                 {/* Compact Info Grid */}
                 <div className="grid grid-cols-4 gap-2">
-                  <div className="p-2.5 bg-zinc-800/60 rounded-lg border border-zinc-700/50">
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 mb-0.5">
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
                       <Globe className="w-3 h-3" />
                       Region
                     </div>
-                    <div className="text-sm font-medium text-zinc-200">{getRegionLabel(selectedActivity.region)}</div>
+                    <div className="text-sm font-medium text-slate-900">{getRegionLabel(selectedActivity.region)}</div>
                   </div>
-                  <div className="p-2.5 bg-zinc-800/60 rounded-lg border border-zinc-700/50">
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 mb-0.5">
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
                       <Languages className="w-3 h-3" />
                       Language
                     </div>
-                    <div className="text-sm font-medium text-zinc-200">{getLanguageLabel(selectedActivity.language)}</div>
+                    <div className="text-sm font-medium text-slate-900">{getLanguageLabel(selectedActivity.language)}</div>
                   </div>
-                  <div className="p-2.5 bg-zinc-800/60 rounded-lg border border-zinc-700/50">
-                    <div className="text-xs text-zinc-400 mb-0.5">ID</div>
-                    <div className="text-sm font-medium text-zinc-200">{selectedActivity.activityId || '-'}</div>
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="text-xs text-slate-500 mb-0.5">ID</div>
+                    <div className="text-sm font-medium text-slate-900">{selectedActivity.activityId || '-'}</div>
                   </div>
-                  <div className="p-2.5 bg-orange-950/30 rounded-lg border border-orange-800/30">
-                    <div className="text-xs text-orange-400/80 mb-0.5">Duration</div>
-                    <div className="text-sm font-medium text-orange-200">
+                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="text-xs text-blue-500 mb-0.5">Duration</div>
+                    <div className="text-sm font-medium text-blue-700">
                       {Math.ceil((new Date(selectedActivity.endDatetime).getTime() - new Date(selectedActivity.startDatetime).getTime()) / (1000 * 60 * 60 * 24))}d
                     </div>
                   </div>
@@ -594,13 +576,13 @@ const ActivityCalendarPage = () => {
 
                 {/* Time Info - Compact */}
                 <div className="flex gap-3 text-xs">
-                  <div className="flex-1 p-2 bg-emerald-950/20 rounded-lg border border-emerald-800/20">
-                    <span className="text-emerald-500/70">Start:</span>
-                    <span className="ml-2 text-emerald-200">{formatDate(selectedActivity.startDatetime)}</span>
+                  <div className="flex-1 p-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                    <span className="text-emerald-600">Start:</span>
+                    <span className="ml-2 text-emerald-800">{formatDate(selectedActivity.startDatetime)}</span>
                   </div>
-                  <div className="flex-1 p-2 bg-orange-950/20 rounded-lg border border-orange-800/20">
-                    <span className="text-orange-500/70">End:</span>
-                    <span className="ml-2 text-orange-200">{formatDate(selectedActivity.endDatetime)}</span>
+                  <div className="flex-1 p-2 bg-amber-50 rounded-lg border border-amber-100">
+                    <span className="text-amber-600">End:</span>
+                    <span className="ml-2 text-amber-800">{formatDate(selectedActivity.endDatetime)}</span>
                   </div>
                 </div>
 
@@ -608,7 +590,7 @@ const ActivityCalendarPage = () => {
                   to={selectedActivity.imageUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-800 text-orange-50 rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-950/50 hover:shadow-orange-900/40 font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-950 text-white rounded-xl hover:bg-slate-800 transition-all shadow-sm font-medium"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View Original Image
@@ -619,6 +601,7 @@ const ActivityCalendarPage = () => {
         </DialogContent>
       </Dialog>
 
+      </div>
     </div>
   );
 };
