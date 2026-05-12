@@ -444,16 +444,16 @@ const ActivityCalendarPage = () => {
                             }}
                             className="w-full text-left group"
                           >
-                            <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-blue-200 hover:shadow-md group-hover:scale-[1.02]">
+                            <div className="relative overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm ring-1 ring-white/70 transition-all duration-200 hover:border-blue-300 hover:shadow-md group-hover:scale-[1.02]">
                               <img
                                 src={activity.imageUrl}
                                 alt="Activity"
-                                className="w-full h-10 object-cover"
+                                className="w-full h-10 object-contain px-1 py-0.5"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 40 40%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23333%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%228%22%3EImage%3C/text%3E%3C/svg%3E';
                                 }}
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-white/10" />
                               <div className="absolute bottom-1 left-1 flex gap-1">
                                 <Badge
                                   variant="secondary"
@@ -498,7 +498,7 @@ const ActivityCalendarPage = () => {
           }}
           onMouseLeave={() => setHoveredActivity(null)}
         >
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/60">
+          <div className="overflow-hidden rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-2xl shadow-slate-300/60">
             <img
               src={hoveredActivity.imageUrl}
               alt="Preview"
@@ -535,11 +535,11 @@ const ActivityCalendarPage = () => {
 
               <div className="space-y-4 p-6">
                 {/* Main Image - Larger */}
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm group">
+                <div className="overflow-hidden rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm group">
                   <img
                     src={selectedActivity.imageUrl}
                     alt="Activity Image"
-                    className="w-full h-[420px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                    className="w-full h-[420px] object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%23222%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2214%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
                     }}
