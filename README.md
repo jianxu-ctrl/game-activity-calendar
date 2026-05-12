@@ -96,3 +96,19 @@ read-only, while `/?admin=1` enables protected CSV/Excel upload.
 
 See `docs/netlify-deploy.md` for the full setup for
 `https://luminous-begonia-498426.netlify.app/`.
+
+## Cloudflare Pages Deploy
+
+This repository also supports Cloudflare Pages deployment:
+
+```text
+Build command: npm run build:cloudflare
+Build output directory: dist/client
+Functions directory: functions
+KV binding: GAME_ACTIVITY_CALENDAR
+```
+
+Set `ADMIN_SYNC_TOKEN` as a Cloudflare Pages secret, and bind a Workers KV
+namespace named `GAME_ACTIVITY_CALENDAR`.
+
+See `docs/cloudflare-pages-deploy.md` for the full setup.
