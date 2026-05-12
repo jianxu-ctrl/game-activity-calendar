@@ -26,10 +26,6 @@ export async function onRequest(context) {
       return jsonResponse(400, { success: false, errors: ['No language was provided.'] });
     }
 
-    if (!keys.length) {
-      return jsonResponse(400, { success: false, errors: ['No translation keys were provided.'] });
-    }
-
     const results = await Promise.allSettled(
       languages.map((language) => fetchTransifyTranslations(context.env, { language, keys })),
     );

@@ -78,6 +78,43 @@ export function UploadPanel(props: any) {
               </div>
             )}
 
+            <div className="mb-4 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-slate-900">{uiText.configFolderLabel}</div>
+                  <div className="mt-1 truncate text-xs text-slate-500">
+                    {props.configDirectoryName || uiText.configFolderHint}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={props.isImportingConfigDirectory}
+                    onClick={props.onSelectConfigDirectory}
+                    className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                      props.isImportingConfigDirectory
+                        ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                        : "border-indigo-200 bg-white text-indigo-700 hover:-translate-y-0.5 hover:shadow-md"
+                    }`}
+                  >
+                    {uiText.selectConfigFolder}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={props.isImportingConfigDirectory}
+                    onClick={props.onRefreshConfigDirectory}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition ${
+                      props.isImportingConfigDirectory
+                        ? "cursor-not-allowed bg-slate-400"
+                        : "bg-slate-950 hover:-translate-y-0.5 hover:shadow-md"
+                    }`}
+                  >
+                    {props.isImportingConfigDirectory ? "Updating..." : uiText.refreshConfigFolder}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {fileSpecs.map((item) => (
                 <label
@@ -166,7 +203,7 @@ export function UploadPanel(props: any) {
                 <button
                   type="button"
                   disabled={props.isImportingTransify}
-                  onClick={() => props.onImportTransify && props.onImportTransify("current")}
+                  onClick={() => props.onImportTransify && props.onImportTransify("used-current")}
                   className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
                     props.isImportingTransify
                       ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
@@ -178,7 +215,19 @@ export function UploadPanel(props: any) {
                 <button
                   type="button"
                   disabled={props.isImportingTransify}
-                  onClick={() => props.onImportTransify && props.onImportTransify("all")}
+                  onClick={() => props.onImportTransify && props.onImportTransify("full-current")}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    props.isImportingTransify
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  {props.isImportingTransify ? "Importing..." : uiText.importTransifyFullLanguage}
+                </button>
+                <button
+                  type="button"
+                  disabled={props.isImportingTransify}
+                  onClick={() => props.onImportTransify && props.onImportTransify("full-all")}
                   className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
                     props.isImportingTransify
                       ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"

@@ -1,6 +1,8 @@
 ﻿import { useMemo, useState } from "react";
-import { CACHE_KEYS } from "./constants";
+import { CACHE_KEYS, fileSpecs } from "./constants";
 import { safeWriteStorage, cacheFile, saveTranslationMap, loadTranslationMap } from "./cache";
+import { dbGet, dbPut } from "./cache";
+import { useEffect } from "react";
 import { parseTranslationWorkbook, parseUploadedFiles } from "./parser";
 import { looksLikeTextKey, text } from "./utils";
 import { importTransifyTranslations } from "./api/transify";
@@ -9,6 +11,7 @@ import { useAppState } from "./hooks";
 
 const ADMIN_SYNC_TOKEN_STORAGE_KEY = "game-activity-admin-sync-token";
 const TRANSIFY_SUPPORTED_LANGUAGES = ["CN", "EN", "ES", "MY", "ID", "TH", "VI"];
+const CONFIG_DIRECTORY_HANDLE_KEY = "event-calendar-preview-config-directory-handle";
 
 function collectTranslationKeys(value: unknown) {
   const keys = new Set<string>();
@@ -49,6 +52,36 @@ function promptForAdminToken() {
   return token;
 }
 
+function supportsDirectoryPicker() {
+  return typeof (window as any).showDirectoryPicker === "function";
+}
+
+async function ensureDirectoryPermission(handle: any) {
+  if (!handle || typeof handle.queryPermission !== "function") return true;
+
+  const options = { mode: "read" };
+  if ((await handle.queryPermission(options)) === "granted") return true;
+  if (typeof handle.requestPermission !== "function") return false;
+  return (await handle.requestPermission(options)) === "granted";
+}
+
+async function getFileFromDirectory(handle: any, filename: string) {
+  const candidates = filename.endsWith(".xlsx")
+    ? [filename, filename.replace(/\.xlsx$/i, ".xls")]
+    : [filename];
+
+  for (const candidate of candidates) {
+    try {
+      const fileHandle = await handle.getFileHandle(candidate);
+      return await fileHandle.getFile();
+    } catch {
+      // Try the next supported Excel extension.
+    }
+  }
+
+  return null;
+}
+
 export default function App() {
   const {
     events, setEvents,
@@ -69,6 +102,21 @@ export default function App() {
   } = useAppState();
   const [isExportingDefaultData, setIsExportingDefaultData] = useState(false);
   const [isImportingTransify, setIsImportingTransify] = useState(false);
+  const [isImportingConfigDirectory, setIsImportingConfigDirectory] = useState(false);
+  const [configDirectoryName, setConfigDirectoryName] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    dbGet(CONFIG_DIRECTORY_HANDLE_KEY)
+      .then((record: any) => {
+        if (!cancelled && record?.name) setConfigDirectoryName(record.name);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const t = (value: unknown) => {
     const raw = text(value);
@@ -209,10 +257,109 @@ export default function App() {
     updateStatus({ type: "ready", message: `Cached ${file.name}. Click parse to refresh the calendar.` });
   };
 
-  const onImportTransify = async (scope: "current" | "all") => {
+  const importConfigFilesFromDirectory = async (handle: any) => {
+    if (isImportingConfigDirectory) return;
+
+    const allowed = await ensureDirectoryPermission(handle);
+    if (!allowed) {
+      updateStatus({ type: "error", message: "Folder permission was not granted. Select the config folder again." });
+      return;
+    }
+
+    setIsImportingConfigDirectory(true);
+    updateStatus({ type: "ready", message: `Reading latest config Excel files from ${handle.name || "selected folder"}...` });
+
+    try {
+      const nextRecords: Record<string, any> = {};
+      const nextFileNames: Record<string, string> = {};
+      const missing: string[] = [];
+
+      for (const spec of fileSpecs) {
+        const file = await getFileFromDirectory(handle, spec.filename);
+        if (!file) {
+          missing.push(spec.filename);
+          continue;
+        }
+
+        nextRecords[spec.key] = await cacheFile(spec.key, file);
+        nextFileNames[spec.key] = file.name;
+      }
+
+      if (!Object.keys(nextRecords).length) {
+        updateStatus({ type: "error", message: "No matching Excel files were found in this folder." });
+        return;
+      }
+
+      const mergedFileObjects = { ...fileObjects, ...nextRecords };
+      setFileObjects(mergedFileObjects);
+      setFileNames((prev) => {
+        const next = { ...prev, ...nextFileNames };
+        safeWriteStorage(CACHE_KEYS.fileMeta, next);
+        return next;
+      });
+
+      await parseUploadedFiles(mergedFileObjects, setEvents, setSelected, setStatus, safeWriteStorage, CACHE_KEYS);
+
+      if (missing.length) {
+        updateStatus({
+          type: "ready",
+          message: `Updated ${Object.keys(nextRecords).length} config files from ${handle.name || "selected folder"}. Missing: ${missing.join(", ")}.`,
+        });
+      }
+    } catch (error) {
+      updateStatus({ type: "error", message: `Failed to update from folder: ${(error as Error).message || String(error)}` });
+    } finally {
+      setIsImportingConfigDirectory(false);
+    }
+  };
+
+  const onSelectConfigDirectory = async () => {
+    if (!supportsDirectoryPicker()) {
+      updateStatus({
+        type: "error",
+        message: "This browser does not support direct folder access. Use the single file upload buttons instead.",
+      });
+      return;
+    }
+
+    try {
+      const handle = await (window as any).showDirectoryPicker({ mode: "read" });
+      const name = handle.name || "Selected folder";
+      setConfigDirectoryName(name);
+
+      try {
+        await dbPut(CONFIG_DIRECTORY_HANDLE_KEY, { name, handle });
+      } catch {
+        updateStatus({
+          type: "ready",
+          message: "Folder selected, but this browser could not remember it after refresh.",
+        });
+      }
+
+      await importConfigFilesFromDirectory(handle);
+    } catch (error) {
+      if ((error as Error).name === "AbortError") return;
+      updateStatus({ type: "error", message: `Failed to select config folder: ${(error as Error).message || String(error)}` });
+    }
+  };
+
+  const onRefreshConfigDirectory = async () => {
+    const stored = await dbGet(CONFIG_DIRECTORY_HANDLE_KEY).catch(() => null) as any;
+    const handle = stored?.handle;
+
+    if (!handle) {
+      await onSelectConfigDirectory();
+      return;
+    }
+
+    setConfigDirectoryName(stored.name || handle.name || "Selected folder");
+    await importConfigFilesFromDirectory(handle);
+  };
+
+  const onImportTransify = async (scope: "used-current" | "full-current" | "full-all") => {
     if (isImportingTransify) return;
 
-    const targetLanguages = scope === "all"
+    const targetLanguages = scope === "full-all"
       ? TRANSIFY_SUPPORTED_LANGUAGES
       : [lang.toUpperCase()];
     const unsupported = targetLanguages.filter((language) => !TRANSIFY_SUPPORTED_LANGUAGES.includes(language));
@@ -221,8 +368,9 @@ export default function App() {
       return;
     }
 
-    const keys = collectTranslationKeys(events);
-    if (!keys.length) {
+    const shouldImportFullResource = scope !== "used-current";
+    const keys = shouldImportFullResource ? [] : collectTranslationKeys(events);
+    if (!shouldImportFullResource && !keys.length) {
       updateStatus({ type: "error", message: "No translation keys were found. Upload and parse config files first." });
       return;
     }
@@ -236,7 +384,9 @@ export default function App() {
     setIsImportingTransify(true);
     updateStatus({
       type: "ready",
-      message: `Importing ${keys.length} keys for ${targetLanguages.join(", ")} from Transify...`,
+      message: shouldImportFullResource
+        ? `Importing full Transify resource for ${targetLanguages.join(", ")}...`
+        : `Importing ${keys.length} used keys for ${targetLanguages.join(", ")} from Transify...`,
     });
 
     try {
@@ -261,10 +411,12 @@ export default function App() {
       const nextTranslationMaps: Record<string, Record<string, string>> = {};
       const nextTranslationFiles = importedEntries.map(([language, item]) => ({
         lang: language,
-        name: `Transify resource ${item.resourceId || "4115"}`,
+        name: shouldImportFullResource
+          ? `Transify full resource ${item.resourceId || "4115"}`
+          : `Transify used keys ${item.resourceId || "4115"}`,
         count: Object.keys(item.translations || {}).length,
         updatedAt: Date.now(),
-        source: "transify",
+        source: shouldImportFullResource ? "transify-full" : "transify-used",
       }));
 
       for (const [language, item] of importedEntries) {
@@ -282,7 +434,10 @@ export default function App() {
       });
       setTranslationFiles((prev) => {
         const next = [
-          ...prev.filter((item: any) => !(item.source === "transify" && nextTranslationFiles.some((nextItem) => nextItem.lang === item.lang))),
+          ...prev.filter((item: any) => !(
+            (item.source === "transify" || item.source === "transify-full" || item.source === "transify-used") &&
+            nextTranslationFiles.some((nextItem) => nextItem.lang === item.lang && nextItem.source === item.source)
+          )),
           ...nextTranslationFiles,
         ];
         safeWriteStorage(CACHE_KEYS.translationFiles, next);
@@ -329,6 +484,10 @@ export default function App() {
             fileNames={fileNames}
             onFile={onFile}
             onParse={parseUploaded}
+            onSelectConfigDirectory={onSelectConfigDirectory}
+            onRefreshConfigDirectory={onRefreshConfigDirectory}
+            isImportingConfigDirectory={isImportingConfigDirectory}
+            configDirectoryName={configDirectoryName}
             onDeleteTranslation={onDeleteTranslation}
             status={status}
             translationFiles={translationFiles}

@@ -212,6 +212,9 @@ export function sanitizeUiText(value: Record<string, unknown>) {
   const merged: Record<string, string> = { ...DEFAULT_UI_TEXT };
   const staleChineseText: Record<string, string[]> = {
     translationDesc: ["翻译数据存入 IndexedDB，不占用 localStorage 容量。", "翻译数据存入 IndexedDB，不占用 localStorage 容量", "翻译数据存入 IndexedDB，不占用 localStorage 容量。"],
+    importTransifyCurrent: ["Import Current From Transify"],
+    importTransifyAll: ["Import All From Transify"],
+    transifyImportHint: ["Uses keys parsed from the current config. Admin token required."],
   };
 
   Object.keys(value || {}).forEach((key) => {

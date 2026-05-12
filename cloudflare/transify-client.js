@@ -25,24 +25,23 @@ export async function fetchTransifyTranslations(env, options) {
   }
 
   const keys = normalizeKeys(options.keys);
-  if (!keys.length) {
-    throw new Error('No translation keys were provided.');
-  }
 
   const baseUrl = String(env.TRANSIFY_BASE_URL || DEFAULT_TRANSIFY_BASE_URL).replace(/\/+$/, '');
   const resourceId = String(env.TRANSIFY_RESOURCE_ID || DEFAULT_TRANSIFY_RESOURCE_ID).trim();
   const handlerType = String(env.TRANSIFY_HANDLER_TYPE || DEFAULT_TRANSIFY_HANDLER_TYPE).trim();
   const url = `${baseUrl}/api/resources/${encodeURIComponent(resourceId)}/languagestoken/${encodeURIComponent(languageId)}/export/${encodeURIComponent(handlerType)}`;
 
-  const formData = new FormData();
-  formData.set('file', buildJsonTranslationFile(keys));
+  const formBody = buildFormBody({
+    file: keys.length ? buildJsonTranslationFile(keys) : '',
+  });
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Token ${token}`,
+      'Content-Type': formBody.contentType,
     },
-    body: formData,
+    body: formBody.body,
   });
 
   const responseText = await response.text();
@@ -74,6 +73,36 @@ function buildJsonTranslationFile(keys) {
   const file = {};
   for (const key of keys) file[key] = '';
   return JSON.stringify(file);
+}
+
+function buildFormBody(fields) {
+  const boundary = `----codex-transify-${randomId()}`;
+  let body = '';
+
+  for (const [name, value] of Object.entries(fields)) {
+    body += `--${boundary}\r\n`;
+    body += `Content-Disposition: form-data; name="${escapeFormName(name)}"\r\n\r\n`;
+    body += `${String(value)}\r\n`;
+  }
+
+  body += `--${boundary}--\r\n`;
+
+  return {
+    body,
+    contentType: `multipart/form-data; boundary=${boundary}`,
+  };
+}
+
+function randomId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return Math.random().toString(36).slice(2);
+}
+
+function escapeFormName(value) {
+  return String(value).replace(/"/g, '%22').replace(/\r|\n/g, '');
 }
 
 function parseLanguageIds(value) {

@@ -83,9 +83,14 @@ Transify import:
 /preview
 ```
 
-Open the Localization Files section, then use `Import Current From Transify` or
-`Import All From Transify`. The page prompts for the same `ADMIN_SYNC_TOKEN`,
-then the Pages Function calls Transify with `TRANSIFY_AUTH_TOKEN`.
+Open the Localization Files section, then use:
+
+- `Import Used Keys` to import only keys found in the current Preview config.
+- `Import Full Language` to import the whole Transify resource for the current language.
+- `Import Full All Languages` to import the whole Transify resource for every configured language.
+
+The page prompts for the same `ADMIN_SYNC_TOKEN`, then the Pages Function calls
+Transify with `TRANSIFY_AUTH_TOKEN`.
 
 ## Data Migration Note
 
