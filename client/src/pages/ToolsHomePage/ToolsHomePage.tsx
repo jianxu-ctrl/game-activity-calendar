@@ -3,7 +3,7 @@ import { CalendarDays, Eye, LayoutGrid } from 'lucide-react';
 
 const tools = [
   {
-    title: 'Game Events Calendar',
+    title: 'Event Pop-Up Calendar',
     description: 'Public calendar view for game activity schedules, filters, and detail previews.',
     href: '/calendar',
     icon: CalendarDays,

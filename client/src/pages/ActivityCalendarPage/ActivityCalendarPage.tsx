@@ -304,7 +304,7 @@ const ActivityCalendarPage = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
-              Game Events Calendar
+              Event Pop-Up Calendar
             </h1>
             <p className="text-sm text-zinc-400">
               {new Date(year, month - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}
