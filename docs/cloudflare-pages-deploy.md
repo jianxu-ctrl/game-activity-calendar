@@ -45,16 +45,21 @@ Set these in the Pages project:
 ADMIN_SYNC_TOKEN=replace-with-a-long-random-secret
 APP_NAME=Game Tools Center
 APP_DESCRIPTION=Game tools center
+TRANSIFY_AUTH_TOKEN=replace-with-your-transify-token
 ```
 
 Optional:
 
 ```env
 GOOGLE_SHEETS_CSV_URL=https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=0
+TRANSIFY_RESOURCE_ID=4115
+TRANSIFY_HANDLER_TYPE=json
+TRANSIFY_LANGUAGE_IDS=EN:1,CN:5,ES:26,MY:12,ID:6,TH:4,VI:3
 ```
 
-Use an encrypted secret for `ADMIN_SYNC_TOKEN` if the dashboard offers that
-option.
+Use encrypted secrets for `ADMIN_SYNC_TOKEN` and `TRANSIFY_AUTH_TOKEN` if the
+dashboard offers that option. Do not put the Transify token in the frontend or
+commit it to GitHub.
 
 ## URLs
 
@@ -71,6 +76,16 @@ Admin sync:
 ```text
 /calendar?admin=1
 ```
+
+Transify import:
+
+```text
+/preview
+```
+
+Open the Localization Files section, then use `Import Current From Transify` or
+`Import All From Transify`. The page prompts for the same `ADMIN_SYNC_TOKEN`,
+then the Pages Function calls Transify with `TRANSIFY_AUTH_TOKEN`.
 
 ## Data Migration Note
 

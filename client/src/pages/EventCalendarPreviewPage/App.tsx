@@ -2,9 +2,52 @@
 import { CACHE_KEYS } from "./constants";
 import { safeWriteStorage, cacheFile, saveTranslationMap, loadTranslationMap } from "./cache";
 import { parseTranslationWorkbook, parseUploadedFiles } from "./parser";
-import { text } from "./utils";
+import { looksLikeTextKey, text } from "./utils";
+import { importTransifyTranslations } from "./api/transify";
 import { Gantt, DetailPanel, UploadPanel, UITextEditor } from "./components";
 import { useAppState } from "./hooks";
+
+const ADMIN_SYNC_TOKEN_STORAGE_KEY = "game-activity-admin-sync-token";
+const TRANSIFY_SUPPORTED_LANGUAGES = ["CN", "EN", "ES", "MY", "ID", "TH", "VI"];
+
+function collectTranslationKeys(value: unknown) {
+  const keys = new Set<string>();
+  const seen = new Set<object>();
+
+  const visit = (item: unknown) => {
+    if (typeof item === "string") {
+      if (looksLikeTextKey(item)) keys.add(item.trim());
+      return;
+    }
+
+    if (!item || typeof item !== "object") return;
+    if (seen.has(item)) return;
+    seen.add(item);
+
+    if (Array.isArray(item)) {
+      item.forEach(visit);
+      return;
+    }
+
+    Object.values(item as Record<string, unknown>).forEach(visit);
+  };
+
+  visit(value);
+  return Array.from(keys).sort();
+}
+
+function getStoredAdminToken() {
+  return window.sessionStorage.getItem(ADMIN_SYNC_TOKEN_STORAGE_KEY) || "";
+}
+
+function promptForAdminToken() {
+  const current = getStoredAdminToken().trim();
+  if (current) return current;
+
+  const token = window.prompt("Enter the admin token to import translations from Transify:")?.trim() || "";
+  if (token) window.sessionStorage.setItem(ADMIN_SYNC_TOKEN_STORAGE_KEY, token);
+  return token;
+}
 
 export default function App() {
   const {
@@ -25,6 +68,7 @@ export default function App() {
     eventNotes, setEventNotes,
   } = useAppState();
   const [isExportingDefaultData, setIsExportingDefaultData] = useState(false);
+  const [isImportingTransify, setIsImportingTransify] = useState(false);
 
   const t = (value: unknown) => {
     const raw = text(value);
@@ -165,6 +209,102 @@ export default function App() {
     updateStatus({ type: "ready", message: `Cached ${file.name}. Click parse to refresh the calendar.` });
   };
 
+  const onImportTransify = async (scope: "current" | "all") => {
+    if (isImportingTransify) return;
+
+    const targetLanguages = scope === "all"
+      ? TRANSIFY_SUPPORTED_LANGUAGES
+      : [lang.toUpperCase()];
+    const unsupported = targetLanguages.filter((language) => !TRANSIFY_SUPPORTED_LANGUAGES.includes(language));
+    if (unsupported.length) {
+      updateStatus({ type: "error", message: `Transify is not configured for: ${unsupported.join(", ")}.` });
+      return;
+    }
+
+    const keys = collectTranslationKeys(events);
+    if (!keys.length) {
+      updateStatus({ type: "error", message: "No translation keys were found. Upload and parse config files first." });
+      return;
+    }
+
+    const adminToken = promptForAdminToken();
+    if (!adminToken) {
+      updateStatus({ type: "error", message: "Admin token is required to import from Transify." });
+      return;
+    }
+
+    setIsImportingTransify(true);
+    updateStatus({
+      type: "ready",
+      message: `Importing ${keys.length} keys for ${targetLanguages.join(", ")} from Transify...`,
+    });
+
+    try {
+      const result = await importTransifyTranslations({
+        adminToken,
+        languages: targetLanguages,
+        keys,
+      });
+      const importedEntries = Object.entries(result.languages || {})
+        .filter(([, item]) => !item.error && Object.keys(item.translations || {}).length > 0);
+
+      if (!importedEntries.length) {
+        updateStatus({
+          type: result.errors?.length ? "error" : "ready",
+          message: result.errors?.length
+            ? `Transify import did not return usable translations: ${result.errors.join("; ")}`
+            : "Transify import finished, but no matching translations were returned.",
+        });
+        return;
+      }
+
+      const nextTranslationMaps: Record<string, Record<string, string>> = {};
+      const nextTranslationFiles = importedEntries.map(([language, item]) => ({
+        lang: language,
+        name: `Transify resource ${item.resourceId || "4115"}`,
+        count: Object.keys(item.translations || {}).length,
+        updatedAt: Date.now(),
+        source: "transify",
+      }));
+
+      for (const [language, item] of importedEntries) {
+        const currentMap = (await loadTranslationMap(language).catch(() => translationMaps[language] || {})) as Record<string, string>;
+        const merged = { ...(currentMap || {}), ...(item.translations || {}) };
+        await saveTranslationMap(language, merged);
+        nextTranslationMaps[language] = merged;
+      }
+
+      setTranslationMaps((prev) => ({ ...prev, ...nextTranslationMaps }));
+      setLanguages((prev) => {
+        const next = Array.from(new Set([...prev, ...importedEntries.map(([language]) => language)]));
+        safeWriteStorage(CACHE_KEYS.languages, next);
+        return next;
+      });
+      setTranslationFiles((prev) => {
+        const next = [
+          ...prev.filter((item: any) => !(item.source === "transify" && nextTranslationFiles.some((nextItem) => nextItem.lang === item.lang))),
+          ...nextTranslationFiles,
+        ];
+        safeWriteStorage(CACHE_KEYS.translationFiles, next);
+        return next;
+      });
+
+      const importedCount = importedEntries.reduce((sum, [, item]) => sum + Object.keys(item.translations || {}).length, 0);
+      const partialError = result.errors?.length ? ` Partial errors: ${result.errors.join("; ")}` : "";
+      updateStatus({
+        type: result.errors?.length ? "ready" : "success",
+        message: `Imported ${importedCount} translations for ${importedEntries.map(([language]) => language).join(", ")} from Transify.${partialError}`,
+      });
+    } catch (error) {
+      if (String((error as Error).message || error).includes("Invalid admin sync token")) {
+        window.sessionStorage.removeItem(ADMIN_SYNC_TOKEN_STORAGE_KEY);
+      }
+      updateStatus({ type: "error", message: `Failed to import from Transify: ${(error as Error).message || String(error)}` });
+    } finally {
+      setIsImportingTransify(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_30%),linear-gradient(to_bottom,#f8fafc,#eef2ff)] p-6 text-slate-900">
       <div className="mx-auto grid max-w-[1800px] grid-cols-12 gap-5">
@@ -204,6 +344,8 @@ export default function App() {
             uiText={uiText}
             onExportDefaultData={onExportDefaultData}
             isExportingDefaultData={isExportingDefaultData}
+            onImportTransify={onImportTransify}
+            isImportingTransify={isImportingTransify}
           />
           <UITextEditor uiText={uiText} setUiText={setUiText} />
         </main>

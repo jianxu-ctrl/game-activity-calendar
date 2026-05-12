@@ -153,7 +153,7 @@ export function UploadPanel(props: any) {
             )}
 
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <label className="cursor-pointer rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+              <label className="cursor-pointer rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 {uiText.uploadTranslation}
                 <input
                   type="file"
@@ -162,6 +162,33 @@ export function UploadPanel(props: any) {
                   onChange={(event) => props.onFile("Translation", event.target.files && event.target.files[0])}
                 />
               </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={props.isImportingTransify}
+                  onClick={() => props.onImportTransify && props.onImportTransify("current")}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    props.isImportingTransify
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      : "border-indigo-200 bg-indigo-50 text-indigo-700 hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  {props.isImportingTransify ? "Importing..." : uiText.importTransifyCurrent}
+                </button>
+                <button
+                  type="button"
+                  disabled={props.isImportingTransify}
+                  onClick={() => props.onImportTransify && props.onImportTransify("all")}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    props.isImportingTransify
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  {props.isImportingTransify ? "Importing..." : uiText.importTransifyAll}
+                </button>
+              </div>
+              <div className="basis-full text-xs text-slate-500">{uiText.transifyImportHint}</div>
             </div>
 
             <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
