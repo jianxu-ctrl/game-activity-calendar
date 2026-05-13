@@ -19,6 +19,7 @@ import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLi
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ADMIN_SYNC_TOKEN_STORAGE_KEY = 'game-activity-admin-sync-token';
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // 语言显示名称映射
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -110,47 +111,81 @@ const ActivityCalendarPage = () => {
     }
   };
 
-  const calendarDays = useMemo(() => {
+  const timelineDays = useMemo(() => {
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+      const date = new Date(year, month - 1, index + 1);
+      const today = new Date();
+
+      return {
+        date: index + 1,
+        weekday: WEEKDAYS[date.getDay()],
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        isToday:
+          today.getDate() === index + 1 &&
+          today.getMonth() + 1 === month &&
+          today.getFullYear() === year,
+      };
+    });
+  }, [year, month]);
+
+  const ganttRows = useMemo(() => {
     const visibleActivities = Array.isArray(activities) ? activities : [];
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    const startPadding = firstDay.getDay();
-    const daysInMonth = lastDay.getDate();
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0, 23, 59, 59);
+    const daysInMonth = timelineDays.length || 1;
 
-    const days: Array<{
-      date: number | null;
-      activities: GameActivity[];
-      isCurrentMonth: boolean;
-    }> = [];
+    return visibleActivities
+      .map((activity) => {
+        const parsedStart = new Date(activity.startDatetime);
+        const parsedEnd = new Date(activity.endDatetime);
+        const start = Number.isNaN(parsedStart.getTime())
+          ? monthStart
+          : parsedStart;
+        const end = Number.isNaN(parsedEnd.getTime()) ? start : parsedEnd;
+        const clampedStart = new Date(
+          Math.max(start.getTime(), monthStart.getTime()),
+        );
+        const clampedEnd = new Date(
+          Math.min(end.getTime(), monthEnd.getTime()),
+        );
+        const startDay = Math.min(
+          Math.max(clampedStart.getDate(), 1),
+          daysInMonth,
+        );
+        const endDay = Math.min(
+          Math.max(clampedEnd.getDate(), startDay),
+          daysInMonth,
+        );
+        const left = ((startDay - 1) / daysInMonth) * 100;
+        const width = Math.max(
+          100 / daysInMonth,
+          ((endDay - startDay + 1) / daysInMonth) * 100,
+        );
 
-    for (let i = 0; i < startPadding; i++) {
-      days.push({ date: null, activities: [], isCurrentMonth: false });
-    }
-
-    for (let date = 1; date <= daysInMonth; date++) {
-      const dayStart = new Date(year, month - 1, date);
-      const dayEnd = new Date(year, month - 1, date, 23, 59, 59);
-
-      const dayActivities = visibleActivities.filter((activity) => {
-        const start = new Date(activity.startDatetime);
-        const end = new Date(activity.endDatetime);
-        return start <= dayEnd && end >= dayStart;
+        return {
+          activity,
+          startDay,
+          endDay,
+          left,
+          width,
+          durationDays: Math.max(
+            1,
+            Math.ceil((end.getTime() - start.getTime()) / DAY_MS),
+          ),
+          startsBeforeMonth: start.getTime() < monthStart.getTime(),
+          endsAfterMonth: end.getTime() > monthEnd.getTime(),
+        };
+      })
+      .sort((a, b) => {
+        if (a.startDay !== b.startDay) return a.startDay - b.startDay;
+        return (
+          new Date(a.activity.startDatetime).getTime() -
+          new Date(b.activity.startDatetime).getTime()
+        );
       });
-
-      days.push({
-        date,
-        activities: dayActivities,
-        isCurrentMonth: true,
-      });
-    }
-
-    const remainingCells = 42 - days.length;
-    for (let i = 0; i < remainingCells; i++) {
-      days.push({ date: null, activities: [], isCurrentMonth: false });
-    }
-
-    return days;
-  }, [activities, year, month]);
+  }, [activities, timelineDays.length, year, month]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 2, 1));
@@ -163,6 +198,26 @@ const ActivityCalendarPage = () => {
   const handleActivityClick = (activity: GameActivity) => {
     setSelectedActivity(activity);
     setDialogOpen(true);
+  };
+
+  const handleActivityMouseEnter = (
+    activity: GameActivity,
+    element: HTMLElement,
+  ) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
+    setHoveredActivity(activity);
+    const rect = element.getBoundingClientRect();
+    setPreviewPosition({ x: rect.right + 4, y: rect.top - 20 });
+  };
+
+  const handleActivityMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredActivity(null);
+    }, 800);
   };
 
   const parseExcelToCsv = async (file: File): Promise<string> => {
@@ -381,22 +436,9 @@ const ActivityCalendarPage = () => {
         </div>
       </div>
 
-      {/* Calendar Grid */}
+      {/* Gantt Timeline */}
       <Card className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/70">
         <CardContent className="p-0">
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/95">
-            {WEEKDAYS.map((day) => (
-              <div
-                key={day}
-                className="py-4 text-center text-sm font-semibold uppercase text-slate-500"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Days */}
           {loading ? (
             <div className="p-16 text-center">
               <div className="inline-flex items-center gap-2 text-slate-500">
@@ -404,83 +446,169 @@ const ActivityCalendarPage = () => {
                 Loading events...
               </div>
             </div>
+          ) : ganttRows.length === 0 ? (
+            <div className="p-16 text-center text-sm font-medium text-slate-500">
+              No events in this month.
+            </div>
           ) : (
-            <div className="grid grid-cols-7">
-              {calendarDays.map((day, index) => (
+            <div className="overflow-x-auto">
+              <div
+                className="min-w-[1120px]"
+                style={{
+                  width: `${Math.max(1120, 300 + timelineDays.length * 48)}px`,
+                }}
+              >
                 <div
-                  key={index}
-                  className={`min-h-[140px] p-2.5 border-b border-r border-slate-100 last:border-r-0 transition-all ${
-                    day.isCurrentMonth 
-                      ? 'bg-white hover:bg-slate-50' 
-                      : 'bg-slate-50/70'
-                  }`}
+                  className="grid border-b border-slate-200 bg-slate-50/95"
+                  style={{
+                    gridTemplateColumns: `300px minmax(${timelineDays.length * 48}px, 1fr)`,
+                  }}
                 >
-                  {day.date && (
-                    <>
-                      <div className={`text-sm font-semibold mb-2.5 w-7 h-7 flex items-center justify-center rounded-full ${
-                        new Date().getDate() === day.date &&
-                        new Date().getMonth() + 1 === month &&
-                        new Date().getFullYear() === year
-                          ? 'bg-slate-950 text-white shadow-sm'
-                          : 'text-slate-500'
-                      }`}>
-                        {day.date}
+                  <div className="flex h-16 items-center border-r border-slate-200 px-5 text-sm font-bold text-slate-600">
+                    Event
+                  </div>
+                  <div
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))`,
+                    }}
+                  >
+                    {timelineDays.map((day) => (
+                      <div
+                        key={day.date}
+                        className={`flex h-16 flex-col items-center justify-center border-r border-slate-200 text-xs last:border-r-0 ${
+                          day.isToday
+                            ? 'bg-slate-950 text-white'
+                            : day.isWeekend
+                              ? 'bg-slate-100/70 text-slate-500'
+                              : 'text-slate-600'
+                        }`}
+                      >
+                        <span className="text-sm font-bold">{day.date}</span>
+                        <span className="text-[10px] uppercase opacity-75">
+                          {day.weekday.slice(0, 3)}
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        {day.activities.map((activity) => (
-                          <button
-                            key={activity.id}
-                            onClick={() => handleActivityClick(activity)}
-                            onMouseEnter={(e) => {
-                              setHoveredActivity(activity);
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setPreviewPosition({ x: rect.right + 4, y: rect.top - 20 });
-                            }}
-                            onMouseLeave={() => {
-                              // 延迟关闭，给用户足够的时间移到预览图上
-                              hoverTimeoutRef.current = setTimeout(() => {
-                                setHoveredActivity(null);
-                              }, 800);
-                            }}
-                            className="w-full text-left group"
-                          >
-                            <div className="relative overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm ring-1 ring-white/70 transition-all duration-200 hover:border-blue-300 hover:shadow-md group-hover:scale-[1.02]">
-                              <img
-                                src={activity.imageUrl}
-                                alt="Activity"
-                                className="w-full h-10 object-contain px-1 py-0.5"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 40 40%22%3E%3Crect width=%2240%22 height=%2240%22 fill=%22%23333%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%228%22%3EImage%3C/text%3E%3C/svg%3E';
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-white/10" />
-                              <div className="absolute bottom-1 left-1 flex gap-1">
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[8px] px-1 py-0 h-3.5 bg-blue-100/95 text-blue-700 font-medium shadow-sm"
-                                >
-                                  {activity.region}
-                                </Badge>
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[8px] px-1 py-0 h-3.5 bg-slate-100/95 text-slate-600 font-medium shadow-sm"
-                                >
-                                  {activity.language}
-                                </Badge>
-                              </div>
-                            </div>
-                          </button>
+                    ))}
+                  </div>
+                </div>
+
+                {ganttRows.map((row) => (
+                  <div
+                    key={row.activity.id}
+                    className="grid min-h-[78px] border-b border-slate-100 last:border-b-0"
+                    style={{
+                      gridTemplateColumns: `300px minmax(${timelineDays.length * 48}px, 1fr)`,
+                    }}
+                  >
+                    <button
+                      onClick={() => handleActivityClick(row.activity)}
+                      onMouseEnter={(e) =>
+                        handleActivityMouseEnter(row.activity, e.currentTarget)
+                      }
+                      onMouseLeave={handleActivityMouseLeave}
+                      className="group flex min-w-0 items-center gap-3 border-r border-slate-100 bg-white px-4 py-3 text-left transition hover:bg-slate-50"
+                    >
+                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm">
+                        <img
+                          src={row.activity.imageUrl}
+                          alt="Activity"
+                          className="h-full w-full object-contain p-1"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2248%22 viewBox=%220 0 80 48%22%3E%3Crect width=%2280%22 height=%2248%22 fill=%22%231e293b%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2210%22%3EImage%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-bold text-slate-950">
+                          {row.activity.activityId
+                            ? `#${row.activity.activityId}`
+                            : 'Activity'}
+                        </div>
+                        <div className="truncate text-xs text-slate-500">
+                          {formatDate(row.activity.startDatetime)} -{' '}
+                          {formatDate(row.activity.endDatetime)}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge className="h-5 bg-blue-100 px-2 text-[10px] text-blue-700 hover:bg-blue-100">
+                            {row.activity.region}
+                          </Badge>
+                          <Badge className="h-5 bg-slate-100 px-2 text-[10px] text-slate-600 hover:bg-slate-100">
+                            {row.activity.language}
+                          </Badge>
+                          <Badge className="h-5 bg-emerald-50 px-2 text-[10px] text-emerald-700 hover:bg-emerald-50">
+                            {row.durationDays}d
+                          </Badge>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="relative min-h-[78px] bg-white">
+                      <div
+                        className="absolute inset-0 grid"
+                        style={{
+                          gridTemplateColumns: `repeat(${timelineDays.length}, minmax(48px, 1fr))`,
+                        }}
+                      >
+                        {timelineDays.map((day) => (
+                          <div
+                            key={day.date}
+                            className={`border-r border-slate-100 last:border-r-0 ${
+                              day.isToday
+                                ? 'bg-blue-50'
+                                : day.isWeekend
+                                  ? 'bg-slate-50/80'
+                                  : ''
+                            }`}
+                          />
                         ))}
                       </div>
-                    </>
-                  )}
-                </div>
-              ))}
+
+                      <button
+                        onClick={() => handleActivityClick(row.activity)}
+                        onMouseEnter={(e) =>
+                          handleActivityMouseEnter(
+                            row.activity,
+                            e.currentTarget,
+                          )
+                        }
+                        onMouseLeave={handleActivityMouseLeave}
+                        className="absolute top-4 h-11 min-w-12 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-600 to-indigo-500 px-3 text-left text-white shadow-sm transition hover:from-blue-500 hover:to-indigo-500 hover:shadow-md"
+                        style={{
+                          left: `${row.left}%`,
+                          width: `calc(${row.width}% - 8px)`,
+                        }}
+                      >
+                        <div className="flex h-full min-w-0 items-center gap-2 overflow-hidden">
+                          <div className="h-7 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-950/70">
+                            <img
+                              src={row.activity.imageUrl}
+                              alt="Activity"
+                              className="h-full w-full object-contain p-0.5"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold">
+                              {row.activity.activityId
+                                ? `#${row.activity.activityId}`
+                                : 'Activity'}
+                            </div>
+                            <div className="truncate text-[10px] text-blue-100">
+                              {row.startsBeforeMonth ? '< ' : ''}
+                              {row.startDay}-{row.endDay}
+                              {row.endsAfterMonth ? ' >' : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
-
       {/* Hover Preview */}
       {hoveredActivity && (
         <div
