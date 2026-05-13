@@ -509,11 +509,11 @@ const ActivityCalendarPage = () => {
                       onMouseLeave={handleActivityMouseLeave}
                       className="group flex min-w-0 items-center gap-3 border-r border-slate-100 bg-white px-4 py-3 text-left transition hover:bg-slate-50"
                     >
-                      <div className="h-12 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm">
+                      <div className="h-14 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm">
                         <img
                           src={row.activity.imageUrl}
                           alt="Activity"
-                          className="h-full w-full object-contain p-1"
+                          className="h-full w-full scale-125 object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2248%22 viewBox=%220 0 80 48%22%3E%3Crect width=%2280%22 height=%2248%22 fill=%22%231e293b%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2210%22%3EImage%3C/text%3E%3C/svg%3E';
                           }}
@@ -580,11 +580,11 @@ const ActivityCalendarPage = () => {
                         }}
                       >
                         <div className="flex h-full min-w-0 items-center gap-2 overflow-hidden">
-                          <div className="h-7 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-950/70">
+                          <div className="h-9 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-950/70">
                             <img
                               src={row.activity.imageUrl}
                               alt="Activity"
-                              className="h-full w-full object-contain p-0.5"
+                              className="h-full w-full scale-125 object-contain"
                             />
                           </div>
                           <div className="min-w-0">
@@ -614,8 +614,8 @@ const ActivityCalendarPage = () => {
         <div
           className="fixed z-50"
           style={{
-            left: Math.min(previewPosition.x + 20, window.innerWidth - 620),
-            top: Math.max(10, Math.min(previewPosition.y, window.innerHeight - 420)),
+            left: Math.min(previewPosition.x + 20, window.innerWidth - 800),
+            top: Math.max(10, Math.min(previewPosition.y, window.innerHeight - 520)),
           }}
           onMouseEnter={() => {
             // 鼠标进入预览图时保持显示
@@ -630,7 +630,7 @@ const ActivityCalendarPage = () => {
             <img
               src={hoveredActivity.imageUrl}
               alt="Preview"
-              className="w-[600px] h-[360px] object-contain bg-slate-950"
+              className="h-[456px] w-[760px] scale-125 object-contain bg-slate-950"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22360%22 viewBox=%220 0 600 360%22%3E%3Crect width=%22600%22 height=%22360%22 fill=%22%23111%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2218%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
               }}
@@ -667,7 +667,7 @@ const ActivityCalendarPage = () => {
                   <img
                     src={selectedActivity.imageUrl}
                     alt="Activity Image"
-                    className="w-full h-[420px] object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]"
+                    className="w-full h-[420px] scale-125 object-contain transition-transform duration-500"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%23222%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2214%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
                     }}
