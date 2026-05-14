@@ -20,6 +20,239 @@ import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLi
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ADMIN_SYNC_TOKEN_STORAGE_KEY = 'game-activity-admin-sync-token';
 const DAY_MS = 24 * 60 * 60 * 1000;
+const IMAGE_FALLBACK_DATA_URL =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2248%22 viewBox=%220 0 80 48%22%3E%3Crect width=%2280%22 height=%2248%22 fill=%22%231e293b%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2210%22%3EImage%3C/text%3E%3C/svg%3E';
+
+type CropBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  naturalWidth: number;
+  naturalHeight: number;
+};
+
+const cropCache = new Map<string, CropBox | null>();
+
+function SmartCropImage({
+  src,
+  alt,
+  className,
+  fallbackSrc = IMAGE_FALLBACK_DATA_URL,
+}: {
+  src: string;
+  alt: string;
+  className: string;
+  fallbackSrc?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [displaySrc, setDisplaySrc] = useState(src);
+  const [cropBox, setCropBox] = useState<CropBox | null>(() =>
+    cropCache.has(src) ? cropCache.get(src) ?? null : null,
+  );
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    setDisplaySrc(src);
+
+    if (cropCache.has(src)) {
+      setCropBox(cropCache.get(src) ?? null);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.decoding = 'async';
+
+    image.onload = () => {
+      if (cancelled) return;
+
+      const detected = detectContentCrop(image);
+      cropCache.set(src, detected);
+      setCropBox(detected);
+    };
+    image.onerror = () => {
+      if (cancelled) return;
+
+      cropCache.set(src, null);
+      setCropBox(null);
+    };
+    image.src = src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect();
+      setContainerSize({ width: rect.width, height: rect.height });
+    };
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(element);
+    updateSize();
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const croppedStyle =
+    cropBox && containerSize.width > 0 && containerSize.height > 0
+      ? (() => {
+          const scale = Math.max(
+            containerSize.width / cropBox.width,
+            containerSize.height / cropBox.height,
+          );
+          const safeScale = Math.min(scale, 3);
+
+          return {
+            height: `${cropBox.naturalHeight * safeScale}px`,
+            left: `${containerSize.width / 2 - (cropBox.x + cropBox.width / 2) * safeScale}px`,
+            maxWidth: 'none',
+            position: 'absolute' as const,
+            top: `${containerSize.height / 2 - (cropBox.y + cropBox.height / 2) * safeScale}px`,
+            width: `${cropBox.naturalWidth * safeScale}px`,
+          };
+        })()
+      : undefined;
+
+  return (
+    <div ref={containerRef} className={`relative overflow-hidden ${className}`}>
+      <img
+        src={displaySrc}
+        alt={alt}
+        className={
+          croppedStyle
+            ? 'select-none'
+            : 'h-full w-full scale-125 select-none object-contain'
+        }
+        style={croppedStyle}
+        draggable={false}
+        onError={() => {
+          if (displaySrc !== fallbackSrc) {
+            setDisplaySrc(fallbackSrc);
+            setCropBox(null);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function detectContentCrop(image: HTMLImageElement): CropBox | null {
+  try {
+    const naturalWidth = image.naturalWidth || image.width;
+    const naturalHeight = image.naturalHeight || image.height;
+
+    if (!naturalWidth || !naturalHeight) return null;
+
+    const maxDimension = 420;
+    const sampleScale = Math.min(
+      1,
+      maxDimension / Math.max(naturalWidth, naturalHeight),
+    );
+    const width = Math.max(1, Math.round(naturalWidth * sampleScale));
+    const height = Math.max(1, Math.round(naturalHeight * sampleScale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+
+    context.drawImage(image, 0, 0, width, height);
+    const pixels = context.getImageData(0, 0, width, height).data;
+    const columnCounts = new Array(width).fill(0);
+    const rowCounts = new Array(height).fill(0);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const red = pixels[index];
+        const green = pixels[index + 1];
+        const blue = pixels[index + 2];
+        const alpha = pixels[index + 3];
+
+        if (alpha <= 24) continue;
+
+        const max = Math.max(red, green, blue);
+        const min = Math.min(red, green, blue);
+        const brightness = (red + green + blue) / 3;
+        const saturation = max === 0 ? 0 : (max - min) / max;
+        const isContent =
+          brightness > 36 || (max > 58 && saturation > 0.22);
+
+        if (isContent) {
+          columnCounts[x]++;
+          rowCounts[y]++;
+        }
+      }
+    }
+
+    const columnThreshold = Math.max(2, Math.floor(height * 0.018));
+    const rowThreshold = Math.max(2, Math.floor(width * 0.018));
+    let left = 0;
+    let right = width - 1;
+    let top = 0;
+    let bottom = height - 1;
+
+    while (left < width && columnCounts[left] < columnThreshold) left++;
+    while (right > left && columnCounts[right] < columnThreshold) right--;
+    while (top < height && rowCounts[top] < rowThreshold) top++;
+    while (bottom > top && rowCounts[bottom] < rowThreshold) bottom--;
+
+    if (left >= right || top >= bottom) return null;
+
+    const padX = Math.round(width * 0.012);
+    const padY = Math.round(height * 0.012);
+    left = Math.max(0, left - padX);
+    right = Math.min(width - 1, right + padX);
+    top = Math.max(0, top - padY);
+    bottom = Math.min(height - 1, bottom + padY);
+
+    const minCropWidth = width * 0.55;
+    const minCropHeight = height * 0.5;
+    let cropWidth = right - left + 1;
+    let cropHeight = bottom - top + 1;
+
+    if (cropWidth < minCropWidth) {
+      const center = (left + right) / 2;
+      left = Math.max(0, Math.round(center - minCropWidth / 2));
+      right = Math.min(width - 1, Math.round(center + minCropWidth / 2));
+      cropWidth = right - left + 1;
+    }
+
+    if (cropHeight < minCropHeight) {
+      const center = (top + bottom) / 2;
+      top = Math.max(0, Math.round(center - minCropHeight / 2));
+      bottom = Math.min(height - 1, Math.round(center + minCropHeight / 2));
+      cropHeight = bottom - top + 1;
+    }
+
+    if (cropWidth < width * 0.08 || cropHeight < height * 0.08) {
+      return null;
+    }
+
+    if (cropWidth > width * 0.96 && cropHeight > height * 0.96) {
+      return null;
+    }
+
+    return {
+      x: left / sampleScale,
+      y: top / sampleScale,
+      width: cropWidth / sampleScale,
+      height: cropHeight / sampleScale,
+      naturalWidth,
+      naturalHeight,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // 语言显示名称映射
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -509,16 +742,11 @@ const ActivityCalendarPage = () => {
                       onMouseLeave={handleActivityMouseLeave}
                       className="group flex min-w-0 items-center gap-3 border-r border-slate-100 bg-white px-4 py-3 text-left transition hover:bg-slate-50"
                     >
-                      <div className="h-14 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm">
-                        <img
-                          src={row.activity.imageUrl}
-                          alt="Activity"
-                          className="h-full w-full scale-125 object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2248%22 viewBox=%220 0 80 48%22%3E%3Crect width=%2280%22 height=%2248%22 fill=%22%231e293b%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2210%22%3EImage%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      </div>
+                      <SmartCropImage
+                        src={row.activity.imageUrl}
+                        alt="Activity"
+                        className="h-14 w-24 shrink-0 rounded-xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-bold text-slate-950">
                           {row.activity.activityId
@@ -580,13 +808,11 @@ const ActivityCalendarPage = () => {
                         }}
                       >
                         <div className="flex h-full min-w-0 items-center gap-2 overflow-hidden">
-                          <div className="h-9 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-950/70">
-                            <img
-                              src={row.activity.imageUrl}
-                              alt="Activity"
-                              className="h-full w-full scale-125 object-contain"
-                            />
-                          </div>
+                          <SmartCropImage
+                            src={row.activity.imageUrl}
+                            alt="Activity"
+                            className="h-9 w-14 shrink-0 rounded-lg bg-slate-950/70"
+                          />
                           <div className="min-w-0">
                             <div className="truncate text-xs font-bold">
                               {row.activity.activityId
@@ -626,16 +852,11 @@ const ActivityCalendarPage = () => {
           }}
           onMouseLeave={() => setHoveredActivity(null)}
         >
-          <div className="overflow-hidden rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-2xl shadow-slate-300/60">
-            <img
-              src={hoveredActivity.imageUrl}
-              alt="Preview"
-              className="h-[456px] w-[760px] scale-125 object-contain bg-slate-950"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22360%22 viewBox=%220 0 600 360%22%3E%3Crect width=%22600%22 height=%22360%22 fill=%22%23111%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2218%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
-              }}
-            />
-          </div>
+          <SmartCropImage
+            src={hoveredActivity.imageUrl}
+            alt="Preview"
+            className="h-[456px] w-[760px] rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-2xl shadow-slate-300/60"
+          />
         </div>
       )}
 
@@ -663,16 +884,11 @@ const ActivityCalendarPage = () => {
 
               <div className="space-y-4 p-6">
                 {/* Main Image - Larger */}
-                <div className="overflow-hidden rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm group">
-                  <img
-                    src={selectedActivity.imageUrl}
-                    alt="Activity Image"
-                    className="w-full h-[420px] scale-125 object-contain transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%23222%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2214%22%3EImage Not Available%3C/text%3E%3C/svg%3E';
-                    }}
-                  />
-                </div>
+                <SmartCropImage
+                  src={selectedActivity.imageUrl}
+                  alt="Activity Image"
+                  className="h-[420px] w-full rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm"
+                />
 
                 {/* Compact Info Grid */}
                 <div className="grid grid-cols-4 gap-2">
