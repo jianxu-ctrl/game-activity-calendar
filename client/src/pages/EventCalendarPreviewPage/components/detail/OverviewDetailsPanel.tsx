@@ -1,6 +1,7 @@
 import { stripRichText } from "../../utils";
 import { pickCdnUrl } from "../../parser";
 import { CollapsibleDetailSection } from "../common/CollapsibleDetailSection";
+import { ImagePreviewLink } from "../common/ImagePreviewLink";
 
 export function OverviewDetailsPanel({ overviewDetails, t, lang, uiText }: any) {
   if (!overviewDetails || !overviewDetails.length) return null;
@@ -26,7 +27,7 @@ export function OverviewDetailsPanel({ overviewDetails, t, lang, uiText }: any) 
                       <thead className="bg-slate-100 text-slate-700">
                         <tr>
                           <th className="w-28 border-b border-slate-200 px-3 py-2 text-left font-semibold">CDNid</th>
-                          <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold">URL</th>
+                          <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold">Preview</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -37,9 +38,7 @@ export function OverviewDetailsPanel({ overviewDetails, t, lang, uiText }: any) 
                               <td className="px-3 py-2 font-mono text-slate-600">{bgId}</td>
                               <td className="break-all px-3 py-2">
                                 {url ? (
-                                  <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                    {url}
-                                  </a>
+                                  <ImagePreviewLink url={url} />
                                 ) : (
                                   <span className="text-slate-400">{uiText.noMatchedUrl}</span>
                                 )}

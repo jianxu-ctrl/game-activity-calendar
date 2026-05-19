@@ -1,4 +1,5 @@
 import { stripRichText } from "../../utils";
+import { ImagePreviewLink, isImageUrl } from "../common/ImagePreviewLink";
 
 export function RawRowsTable({ rows, t, uiText }: { rows: any[]; t: (value: unknown) => string; uiText: any }) {
   if (!rows || !rows.length) return <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-400">{uiText.noConfigRows}</div>;
@@ -16,7 +17,11 @@ export function RawRowsTable({ rows, t, uiText }: { rows: any[]; t: (value: unkn
             <tr key={rowIndex} className="border-t hover:bg-slate-50">
               {headers.map((header) => (
                 <td key={header} className="max-w-48 truncate p-2" title={stripRichText(t(row[header]))}>
-                  {stripRichText(t(row[header]))}
+                  {isImageUrl(stripRichText(t(row[header]))) ? (
+                    <ImagePreviewLink url={stripRichText(t(row[header]))} />
+                  ) : (
+                    stripRichText(t(row[header]))
+                  )}
                 </td>
               ))}
             </tr>
