@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { ExternalLink } from "lucide-react";
 
 const PREVIEW_WIDTH = 520;
@@ -48,13 +49,36 @@ export function ImagePreviewLink({
     });
   };
 
+  const previewLayer =
+    preview.visible && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl border border-slate-300 bg-slate-950 p-2 shadow-2xl shadow-slate-400/50"
+            style={{
+              height: PREVIEW_HEIGHT,
+              left: preview.left,
+              top: preview.top,
+              width: PREVIEW_WIDTH,
+            }}
+          >
+            <img
+              src={url}
+              alt="Large preview"
+              className="h-full w-full rounded-xl object-contain"
+              draggable={false}
+            />
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       <a
         href={url}
         target="_blank"
         rel="noreferrer"
-        title={url}
+        aria-label="Open image link"
         className={`group inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md ${className}`}
         onMouseEnter={updatePreviewPosition}
         onMouseMove={updatePreviewPosition}
@@ -72,24 +96,7 @@ export function ImagePreviewLink({
         <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400 transition group-hover:text-blue-600" />
       </a>
 
-      {preview.visible && (
-        <div
-          className="pointer-events-none fixed z-50 overflow-hidden rounded-2xl border border-slate-300 bg-slate-950 p-2 shadow-2xl shadow-slate-400/50"
-          style={{
-            height: PREVIEW_HEIGHT,
-            left: preview.left,
-            top: preview.top,
-            width: PREVIEW_WIDTH,
-          }}
-        >
-          <img
-            src={url}
-            alt="Large preview"
-            className="h-full w-full rounded-xl object-contain"
-            draggable={false}
-          />
-        </div>
-      )}
+      {previewLayer}
     </>
   );
 }
