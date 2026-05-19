@@ -39,11 +39,13 @@ function SmartCropImage({
   alt,
   className,
   fallbackSrc = IMAGE_FALLBACK_DATA_URL,
+  mode = 'crop',
 }: {
   src: string;
   alt: string;
   className: string;
   fallbackSrc?: string;
+  mode?: 'crop' | 'contain';
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [displaySrc, setDisplaySrc] = useState(src);
@@ -54,6 +56,11 @@ function SmartCropImage({
 
   useEffect(() => {
     setDisplaySrc(src);
+
+    if (mode === 'contain') {
+      setCropBox(null);
+      return;
+    }
 
     if (cropCache.has(src)) {
       setCropBox(cropCache.get(src) ?? null);
@@ -83,7 +90,7 @@ function SmartCropImage({
     return () => {
       cancelled = true;
     };
-  }, [src]);
+  }, [mode, src]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -101,7 +108,7 @@ function SmartCropImage({
   }, []);
 
   const croppedStyle =
-    cropBox && containerSize.width > 0 && containerSize.height > 0
+    mode === 'crop' && cropBox && containerSize.width > 0 && containerSize.height > 0
       ? (() => {
           const scale = Math.max(
             containerSize.width / cropBox.width,
@@ -128,7 +135,7 @@ function SmartCropImage({
         className={
           croppedStyle
             ? 'select-none'
-            : 'h-full w-full scale-125 select-none object-contain'
+            : `h-full w-full select-none object-contain ${mode === 'crop' ? 'scale-125' : ''}`
         }
         style={croppedStyle}
         draggable={false}
@@ -855,6 +862,7 @@ const ActivityCalendarPage = () => {
           <SmartCropImage
             src={hoveredActivity.imageUrl}
             alt="Preview"
+            mode="contain"
             className="h-[456px] w-[760px] rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-2xl shadow-slate-300/60"
           />
         </div>
@@ -887,6 +895,7 @@ const ActivityCalendarPage = () => {
                 <SmartCropImage
                   src={selectedActivity.imageUrl}
                   alt="Activity Image"
+                  mode="contain"
                   className="h-[420px] w-full rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-sm"
                 />
 
