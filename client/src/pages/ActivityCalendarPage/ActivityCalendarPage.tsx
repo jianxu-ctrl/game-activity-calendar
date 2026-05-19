@@ -22,6 +22,8 @@ const ADMIN_SYNC_TOKEN_STORAGE_KEY = 'game-activity-admin-sync-token';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const IMAGE_FALLBACK_DATA_URL =
   'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2248%22 viewBox=%220 0 80 48%22%3E%3Crect width=%2280%22 height=%2248%22 fill=%22%231e293b%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2210%22%3EImage%3C/text%3E%3C/svg%3E';
+const PREVIEW_MAX_HEIGHT = 456;
+const PREVIEW_MAX_WIDTH = 760;
 
 type CropBox = {
   x: number;
@@ -40,12 +42,14 @@ function SmartCropImage({
   className,
   fallbackSrc = IMAGE_FALLBACK_DATA_URL,
   mode = 'crop',
+  fitFrameToCrop = false,
 }: {
   src: string;
   alt: string;
   className: string;
   fallbackSrc?: string;
-  mode?: 'crop' | 'contain';
+  mode?: 'crop' | 'contain' | 'content';
+  fitFrameToCrop?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [displaySrc, setDisplaySrc] = useState(src);
@@ -62,8 +66,10 @@ function SmartCropImage({
       return;
     }
 
-    if (cropCache.has(src)) {
-      setCropBox(cropCache.get(src) ?? null);
+    const cropCacheKey = `${mode}:${src}`;
+
+    if (cropCache.has(cropCacheKey)) {
+      setCropBox(cropCache.get(cropCacheKey) ?? null);
       return;
     }
 
@@ -75,14 +81,17 @@ function SmartCropImage({
     image.onload = () => {
       if (cancelled) return;
 
-      const detected = detectContentCrop(image);
-      cropCache.set(src, detected);
+      const detected = detectContentCrop(
+        image,
+        mode === 'content' ? 'content' : 'thumbnail',
+      );
+      cropCache.set(cropCacheKey, detected);
       setCropBox(detected);
     };
     image.onerror = () => {
       if (cancelled) return;
 
-      cropCache.set(src, null);
+      cropCache.set(cropCacheKey, null);
       setCropBox(null);
     };
     image.src = src;
@@ -108,13 +117,19 @@ function SmartCropImage({
   }, []);
 
   const croppedStyle =
-    mode === 'crop' && cropBox && containerSize.width > 0 && containerSize.height > 0
+    mode !== 'contain' && cropBox && containerSize.width > 0 && containerSize.height > 0
       ? (() => {
-          const scale = Math.max(
-            containerSize.width / cropBox.width,
-            containerSize.height / cropBox.height,
-          );
-          const safeScale = Math.min(scale, 3);
+          const scale =
+            mode === 'content'
+              ? Math.min(
+                  containerSize.width / cropBox.width,
+                  containerSize.height / cropBox.height,
+                )
+              : Math.max(
+                  containerSize.width / cropBox.width,
+                  containerSize.height / cropBox.height,
+                );
+          const safeScale = Math.min(scale, mode === 'content' ? 4 : 3);
 
           return {
             height: `${cropBox.naturalHeight * safeScale}px`,
@@ -124,11 +139,36 @@ function SmartCropImage({
             top: `${containerSize.height / 2 - (cropBox.y + cropBox.height / 2) * safeScale}px`,
             width: `${cropBox.naturalWidth * safeScale}px`,
           };
+      })()
+      : undefined;
+
+  const fittedFrameStyle =
+    fitFrameToCrop && cropBox && mode === 'content'
+      ? (() => {
+          const cropAspect = cropBox.width / cropBox.height;
+          const frameAspect = PREVIEW_MAX_WIDTH / PREVIEW_MAX_HEIGHT;
+          const width =
+            cropAspect >= frameAspect
+              ? PREVIEW_MAX_WIDTH
+              : PREVIEW_MAX_HEIGHT * cropAspect;
+          const height =
+            cropAspect >= frameAspect
+              ? PREVIEW_MAX_WIDTH / cropAspect
+              : PREVIEW_MAX_HEIGHT;
+
+          return {
+            height: `${Math.round(height)}px`,
+            width: `${Math.round(width)}px`,
+          };
         })()
       : undefined;
 
   return (
-    <div ref={containerRef} className={`relative overflow-hidden ${className}`}>
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden ${className}`}
+      style={fittedFrameStyle}
+    >
       <img
         src={displaySrc}
         alt={alt}
@@ -150,7 +190,10 @@ function SmartCropImage({
   );
 }
 
-function detectContentCrop(image: HTMLImageElement): CropBox | null {
+function detectContentCrop(
+  image: HTMLImageElement,
+  variant: 'thumbnail' | 'content' = 'thumbnail',
+): CropBox | null {
   try {
     const naturalWidth = image.naturalWidth || image.width;
     const naturalHeight = image.naturalHeight || image.height;
@@ -191,7 +234,11 @@ function detectContentCrop(image: HTMLImageElement): CropBox | null {
         const brightness = (red + green + blue) / 3;
         const saturation = max === 0 ? 0 : (max - min) / max;
         const isContent =
-          brightness > 36 || (max > 58 && saturation > 0.22);
+          variant === 'content'
+            ? brightness > 48 ||
+              (max > 45 && saturation > 0.16) ||
+              (brightness > 28 && max - min > 18)
+            : brightness > 36 || (max > 58 && saturation > 0.22);
 
         if (isContent) {
           columnCounts[x]++;
@@ -200,8 +247,14 @@ function detectContentCrop(image: HTMLImageElement): CropBox | null {
       }
     }
 
-    const columnThreshold = Math.max(2, Math.floor(height * 0.018));
-    const rowThreshold = Math.max(2, Math.floor(width * 0.018));
+    const columnThreshold = Math.max(
+      2,
+      Math.floor(height * (variant === 'content' ? 0.012 : 0.018)),
+    );
+    const rowThreshold = Math.max(
+      2,
+      Math.floor(width * (variant === 'content' ? 0.01 : 0.018)),
+    );
     let left = 0;
     let right = width - 1;
     let top = 0;
@@ -214,15 +267,15 @@ function detectContentCrop(image: HTMLImageElement): CropBox | null {
 
     if (left >= right || top >= bottom) return null;
 
-    const padX = Math.round(width * 0.012);
-    const padY = Math.round(height * 0.012);
+    const padX = Math.round(width * (variant === 'content' ? 0.035 : 0.012));
+    const padY = Math.round(height * (variant === 'content' ? 0.045 : 0.012));
     left = Math.max(0, left - padX);
     right = Math.min(width - 1, right + padX);
     top = Math.max(0, top - padY);
     bottom = Math.min(height - 1, bottom + padY);
 
-    const minCropWidth = width * 0.55;
-    const minCropHeight = height * 0.5;
+    const minCropWidth = width * (variant === 'content' ? 0.42 : 0.55);
+    const minCropHeight = height * (variant === 'content' ? 0.34 : 0.5);
     let cropWidth = right - left + 1;
     let cropHeight = bottom - top + 1;
 
@@ -862,7 +915,8 @@ const ActivityCalendarPage = () => {
           <SmartCropImage
             src={hoveredActivity.imageUrl}
             alt="Preview"
-            mode="contain"
+            mode="content"
+            fitFrameToCrop
             className="h-[456px] w-[760px] rounded-2xl border border-slate-300 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_52%,#334155_100%)] shadow-2xl shadow-slate-300/60"
           />
         </div>
